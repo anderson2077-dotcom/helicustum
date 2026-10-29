@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Helcustum</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--win:rgba(250,250,252,.88);--ink:#1d1d1f;--sub:#6e6e73;--line:rgba(0,0,0,.12);--bar:rgba(255,255,255,.55);--dock:rgba(255,255,255,.3);--termbg:#1b1d23;--termfg:#d6e2ff;--accent:#0a84ff;--chip:rgba(0,0,0,.06);
+color-scheme:light dark}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--win:rgba(40,40,44,.88);--ink:#f5f5f7;--sub:#a1a1a6;--line:rgba(255,255,255,.14);--bar:rgba(20,20,24,.5);--dock:rgba(40,40,44,.4);--chip:rgba(255,255,255,.1)}}
+:root[data-theme="dark"]{--win:rgba(40,40,44,.88);--ink:#f5f5f7;--sub:#a1a1a6;--line:rgba(255,255,255,.14);--bar:rgba(20,20,24,.5);--dock:rgba(40,40,44,.4);--chip:rgba(255,255,255,.1)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow:hidden;background:#111;color:var(--ink);font:13px -apple-system,"SF Pro Text","Inter","Segoe UI",system-ui,sans-serif}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bar);backdrop-filter:blur(20px)}
+#desk{position:absolute;inset:0;background-size:cover;transition:background .6s}
+#menu{position:absolute;top:0;left:0;right:0;height:26px;display:flex;align-items:center;gap:16px;padding:0 14px;background:var(--bar);backdrop-filter:blur(24px);color:var(--ink);z-index:9000;font-weight:500}
+#menu b{font-weight:700}#menu .sp{flex:1}
+#wins{position:absolute;inset:26px 0 0}
+.win{position:absolute;background:var(--win);backdrop-filter:blur(30px) saturate(1.6);border:1px solid var(--line);border-radius:12px;box-shadow:0 22px 60px rgba(0,0,0,.4);display:flex;flex-direction:column;overflow:hidden;max-width:100%;animation:pop .18s ease-out}
+@keyframes pop{from{transform:scale(.94);opacity:0}}
+@media (prefers-reduced-motion:reduce){.win{animation:none}#desk{transition:none}}
+.tb{height:34px;display:flex;align-items:center;padding:0 12px;gap:8px;cursor:grab;flex:none;border-bottom:1px solid var(--line);user-select:none}
+.tb span.t{flex:1;text-align:center;font-weight:600;margin-right:46px}
+.dot{width:12px;height:12px;border-radius:50%;border:0;padding:0;cursor:pointer}
+.r{background:#ff5f57}.y{background:#febc2e}.g{background:#28c840}
+.bd{flex:1;overflow:auto;min-height:0}
+.term{background:var(--termbg);color:var(--termfg);font:12.5px "SF Mono",Menlo,Consolas,monospace;padding:10px;height:100%;overflow:auto;white-space:pre-wrap;word-break:break-word}
+.term .ln{display:flex;gap:6px}.term input{flex:1;background:none;border:0;outline:0;color:inherit;font:inherit;min-width:0}
+.p{color:#7ee787}.pd{color:#79c0ff}.er{color:#ff7b72}.dm{color:#8b95a8}
+.pad{padding:16px}
+h2{margin:0 0 4px;font-size:15px}.sub{color:var(--sub)}
+.wps{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px;margin-top:12px}
+.wp{aspect-ratio:16/10;border-radius:8px;border:2px solid transparent;cursor:pointer;display:flex;align-items:flex-end;padding:6px;color:#fff;font-weight:600;text-shadow:0 1px 4px rgba(0,0,0,.6);background-size:cover}
+.wp:focus-visible,.wp.on{border-color:var(--accent);outline:0}
+.row{display:flex;align-items:center;gap:10px;padding:7px 14px;cursor:pointer;border-bottom:1px solid var(--line)}
+.row:hover{background:var(--chip)}
+.ic{width:34px;height:34px;border-radius:8px;display:grid;place-items:center;color:#fff;font-weight:700;font-size:16px;flex:none}
+#dock{position:absolute;bottom:calc(10px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);display:flex;gap:10px;padding:8px 12px;background:var(--dock);backdrop-filter:blur(26px);border:1px solid var(--line);border-radius:20px;z-index:9000;max-width:96vw;overflow-x:auto}
+#dock button{width:46px;height:46px;border-radius:11px;border:0;color:#fff;font-weight:700;font-size:20px;cursor:pointer;flex:none;position:relative;transition:transform .12s}
+#dock button:hover,#dock button:focus-visible{transform:translateY(-8px) scale(1.18);outline:0}
+button.btn{background:var(--accent);color:#fff;border:0;border-radius:6px;padding:6px 12px;cursor:pointer;font:inherit}
+#drop{position:absolute;inset:0;background:rgba(10,132,255,.35);display:none;place-items:center;font-size:22px;color:#fff;z-index:9500;pointer-events:none}
+</style>
+</head>
+<body>
+<div id="desk"></div>
+<div id="menu"><b>&#9673; Helcustum</b><span id="app">Finder</span><span class="sp"></span><span id="clk"></span></div>
+<div id="wins"></div>
+<div id="dock"></div>
+<div id="drop">Drop a .deb file to add it to Downloads</div>
+<input type="file" id="pick" hidden>
+<script>
+const WP={Aurora:"radial-gradient(at 20% 20%,#7c3aed 0,transparent 50%),radial-gradient(at 80% 30%,#06b6d4 0,transparent 50%),radial-gradient(at 50% 90%,#ec4899 0,transparent 55%),#1e1b4b",
+Dune:"radial-gradient(at 70% 15%,#fde68a 0,transparent 45%),linear-gradient(160deg,#fb923c,#be185d 70%,#4c1d95)",
+Midnight:"radial-gradient(at 30% 0,#1d4ed8 0,transparent 55%),linear-gradient(180deg,#0b1026,#020617)",
+Meadow:"radial-gradient(at 80% 10%,#fef08a 0,transparent 35%),linear-gradient(170deg,#86efac,#15803d 60%,#14532d)",
+Ember:"radial-gradient(at 50% 100%,#f97316 0,transparent 60%),radial-gradient(at 10% 10%,#7f1d1d 0,transparent 55%),#18181b",
+Glacier:"linear-gradient(135deg,#e0f2fe,#7dd3fc 45%,#6366f1)"};
+const $=(s,e=document)=>e.querySelector(s),esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+let wall="Aurora";try{wall=localStorage.getItem("hc-wall")||wall}catch(e){}
+function setWall(n){wall=n;$("#desk").style.background=WP[n];try{localStorage.setItem("hc-wall",n)}catch(e){}document.querySelectorAll(".wp").forEach(w=>w.classList.toggle("on",w.dataset.n===n))}
+setWall(WP[wall]?wall:"Aurora");
+setInterval(tick=()=>{$("#clk").textContent=new Date().toLocaleString([], {weekday:"short",hour:"numeric",minute:"2-digit"})},1000);tick();
+
+/* virtual file system */
+const root={d:{home:{d:{user:{d:{Documents:{d:{"readme.txt":{f:"Welcome to Helcustum.\nOpen Terminal and run: dpkg -i\n"}}},Downloads:{d:{}},Desktop:{d:{}}}}}},etc:{d:{"os-release":{f:'NAME="Helcustum"\nVERSION="1.0 (Ridgeline)"\nID=helcustum\nID_LIKE=debian\n'}}},usr:{d:{}}}};
+let cwd=["home","user"];const HOME=["home","user"];
+function node(p){let n=root;for(const s of p){if(!n.d||!n.d[s])return null;n=n.d[s]}return n}
+function parse(s){let p=s.startsWith("/")?[]:s.startsWith("~")?[...HOME]:[...cwd];s=s.replace(/^~/,"");for(const x of s.split("/")){if(!x||x===".")continue;if(x==="..")p.pop();else p.push(x)}return p}
+const pwd=()=>"/"+cwd.join("/");
+
+/* windows */
+let z=10;const wins=$("#wins");
+function openWin(title,body,w=520,h=360,x,y){
+ const e=document.createElement("div");e.className="win";const W=Math.min(w,innerWidth-16),H=Math.min(h,innerHeight-110);
+ e.style.cssText=`width:${W}px;height:${H}px;left:${x??Math.max(8,(innerWidth-W)/2+(Math.random()*80-40))}px;top:${y??40+Math.random()*50}px;z-index:${++z}`;
+ e.innerHTML=`<div class="tb"><button class="dot r" aria-label="Close"></button><button class="dot y" aria-label="Minimize"></button><button class="dot g" aria-label="Zoom"></button><span class="t">${esc(title)}</span></div><div class="bd"></div>`;
+ $(".bd",e).append(body);wins.append(e);
+ const front=()=>{e.style.zIndex=++z;$("#app").textContent=title.split(" ")[0]};e.addEventListener("pointerdown",front);front();
+ $(".r",e).onclick=()=>e.remove();let big=0,sv;
+ $(".g",e).onclick=()=>{if(!big){sv=e.style.cssText;e.style.cssText+=";left:0;top:0;width:100%;height:100%;border-radius:0"}else e.style.cssText=sv;big=!big};
+ $(".y",e).onclick=()=>{const b=$(".bd",e);b.style.display=b.style.display==="none"?"":"none";e.style.height=b.style.display?"34px":H+"px"};
+ const tb=$(".tb",e);tb.onpointerdown=ev=>{if(ev.target.closest(".dot")||big)return;const ox=ev.clientX-e.offsetLeft,oy=ev.clientY-e.offsetTop;tb.setPointerCapture(ev.pointerId);tb.style.cursor="grabbing";
+  tb.onpointermove=m=>{e.style.left=Math.min(innerWidth-60,m.clientX-ox)+"px";e.style.top=Math.max(0,m.clientY-oy)+"px"};tb.onpointerup=()=>{tb.onpointermove=null;tb.style.cursor=""}};
+ return e}
+
+/* apps */
+function Settings(){const b=document.createElement("div");b.className="pad";b.innerHTML=`<h2>Wallpapers</h2><div class="sub">Choose a desktop background.</div><div class="wps"></div>`;
+ for(const n in WP){const d=document.createElement("button");d.className="wp"+(n===wall?" on":"");d.dataset.n=n;d.style.background=WP[n];d.textContent=n;d.onclick=()=>setWall(n);$(".wps",b).append(d)}
+ openWin("Settings",b,480,340)}
+function Files(path=[...HOME]){const b=document.createElement("div");const e=openWin("Files",b,460,340);
+ (function draw(p){const n=node(p);b.innerHTML=`<div class="pad" style="padding-bottom:8px"><b>/${esc(p.join("/"))}</b></div>`;
+  if(p.length)b.insertAdjacentHTML("beforeend",`<div class="row" data-up>&#8593; ..</div>`);
+  for(const k in n.d){const d=n.d[k].d;b.insertAdjacentHTML("beforeend",`<div class="row" data-k="${esc(k)}"><span>${d?"&#128193;":"&#128196;"}</span>${esc(k)}</div>`)}
+  b.onclick=ev=>{const r=ev.target.closest(".row");if(!r)return;if(r.dataset.up!==undefined)return draw(p.slice(0,-1));const c=n.d[r.dataset.k];if(c.d)draw([...p,r.dataset.k]);else{const t=document.createElement("pre");t.className="pad";t.style.margin=0;t.textContent=typeof c.f==="string"?c.f:`[binary, ${c.f.length} bytes]`;openWin(r.dataset.k,t,380,240)}}})(path)}
+function About(){const b=document.createElement("div");b.className="pad";b.innerHTML=`<h2>Helcustum 1.0 &ldquo;Ridgeline&rdquo;</h2><p class="sub">A desktop environment that runs in your browser, with a Debian-flavoured terminal.</p><p>Packages installed: <b>${pkgs.length}</b></p>`;openWin("About Helcustum",b,380,220)}
+const pkgs=[];
+function Apps(){const b=document.createElement("div");if(!pkgs.length)b.innerHTML=`<div class="pad"><h2>No packages yet</h2><div class="sub">Open Terminal and run <code>dpkg -i</code> to install a .deb file.</div></div>`;
+ pkgs.forEach(p=>{const r=document.createElement("div");r.className="row";r.innerHTML=`<div class="ic" style="background:${p.col}">${esc(p.name[0].toUpperCase())}</div><div><b>${esc(p.name)}</b> <span class="sub">${esc(p.Version||"")}</span><div class="sub">${esc((p.Description||"").split("\n")[0])}</div></div>`;r.onclick=()=>Pkg(p);b.append(r)});openWin("Installed Apps",b,440,320)}
+function Pkg(p){const b=document.createElement("div");b.className="pad";b.innerHTML=`<h2>${esc(p.name)} ${esc(p.Version||"")}</h2><div class="sub">${esc(p.Description||"")}</div><p>Maintainer: ${esc(p.Maintainer||"unknown")}<br>Architecture: ${esc(p.Architecture||"?")}<br>Files in package: ${p.files.length||"unknown"}</p><p class="sub">Helcustum unpacks and registers the package, but a browser cannot execute native Linux binaries, so the program itself does not run.</p>`;openWin(p.name,b,420,280)}
+
+/* .deb reader */
+async function gunzip(u){return new Uint8Array(await new Response(new Blob([u]).stream().pipeThrough(new DecompressionStream("gzip"))).arrayBuffer())}
+function tarList(u){const td=new TextDecoder(),o=[];let p=0;while(p+512<=u.length){const n=td.decode(u.slice(p,p+100)).replace(/\0.*$/s,"");if(!n)break;const s=parseInt(td.decode(u.slice(p+124,p+135)).replace(/\0/g,"").trim()||"0",8);o.push({n,d:u.slice(p+512,p+512+s)});p+=512+Math.ceil(s/512)*512}return o}
+async function member(m,pre){const k=Object.keys(m).find(x=>x.startsWith(pre));if(!k)return null;if(k.endsWith(".gz"))return tarList(await gunzip(m[k]));if(k.endsWith(".tar"))return tarList(m[k]);throw new Error(k+" uses "+k.split(".").pop()+" compression, which this browser build cannot unpack")}
+async function readDeb(buf){const u=new Uint8Array(buf),td=new TextDecoder();if(td.decode(u.slice(0,8))!=="!<arch>\n")throw new Error("not a Debian package (missing ar header)");
+ let p=8;const m={};while(p+60<=u.length){const n=td.decode(u.slice(p,p+16)).trim().replace(/\/$/,"");const s=parseInt(td.decode(u.slice(p+48,p+58)));p+=60;m[n]=u.slice(p,p+s);p+=s+(s&1)}
+ const meta={files:[]};let note="";
+ try{const c=await member(m,"control.tar");const f=c&&c.find(x=>/(^|\/)control$/.test(x.n));if(f)for(const l of td.decode(f.d).replace(/\n /g,"\n").split("\n")){const i=l.indexOf(":");if(i>0)meta[l.slice(0,i)]=l.slice(i+1).trim()}}catch(e){note=e.message}
+ try{const d=await member(m,"data.tar");if(d)meta.files=d.map(x=>x.n)}catch(e){note=note||e.message}
+ meta.name=meta.Package||"unknown";meta.note=note;return meta}
+
+/* terminal */
+const COL=["#ef4444","#f59e0b","#10b981","#3b82f6","#8b5cf6","#ec4899"];
+function Terminal(){const t=document.createElement("div");t.className="term";const out=document.createElement("div");t.append(out);
+ const ln=document.createElement("div");ln.className="ln";ln.innerHTML=`<span class="p"></span><input spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Terminal input">`;t.append(ln);
+ const inp=$("input",ln),ps=$(".p",ln),hist=[];let hi=0;
+ const pr=()=>ps.innerHTML=`<span class="p">user@helcustum</span>:<span class="pd">${esc(cwd.join("/")===HOME.join("/")?"~":pwd())}</span>$`;
+ const w=(s,c="")=>{const d=document.createElement("div");d.className=c;d.innerHTML=s;out.append(d);t.scrollTop=t.scrollHeight};
+ const wt=(s,c)=>w(esc(s),c);
+ w("Helcustum 1.0 terminal. Type <b>help</b> to see commands.","dm");pr();
+ const pickFile=()=>new Promise(r=>{const i=$("#pick");i.value="";i.onchange=()=>r(i.files[0]);i.click()});
+ async function install(file){wt(`Reading ${file.name} ...`,"dm");try{const meta=await readDeb(await file.arrayBuffer());
+   wt(`Selecting package: ${meta.name} (${meta.Version||"?"})`);wt(`Unpacking ${meta.files.length} entries ...`,"dm");
+   if(meta.note)wt("warning: "+meta.note,"er");
+   const old=pkgs.findIndex(p=>p.name===meta.name);meta.col=COL[pkgs.length%COL.length];if(old>=0)pkgs[old]=meta;else{pkgs.push(meta);addDock(meta)}
+   wt(`Setting up ${meta.name} ...`);wt("Done. Run it with: run "+meta.name,"p")}catch(e){wt("dpkg: error: "+e.message,"er")}}
+ const C={
+  help:()=>wt("help ls cd pwd cat mkdir touch rm echo clear whoami date uname neofetch\ndpkg -i [file.deb]  dpkg -l  dpkg -r <pkg>   run <pkg>\nopen <settings|files|about|apps>  wallpaper <name>\napt (offline; use dpkg -i with your own .deb files)"),
+  ls:a=>{const n=node(parse(a[0]||"."));if(!n||!n.d)return wt("ls: cannot access: No such directory","er");w(Object.keys(n.d).map(k=>n.d[k].d?`<span class="pd">${esc(k)}/</span>`:esc(k)).join("  ")||"&nbsp;")},
+  cd:a=>{const p=parse(a[0]||"~");const n=node(p);if(n&&n.d)cwd=p;else wt("cd: no such directory: "+a[0],"er")},
+  pwd:()=>wt(pwd()),whoami:()=>wt("user"),date:()=>wt(new Date().toString()),
+  uname:()=>wt("Helcustum 1.0-ridgeline x86_64 (browser)"),
+  clear:()=>{out.innerHTML=""},
+  cat:a=>{const n=node(parse(a[0]||""));if(!n||n.d)return wt("cat: "+a[0]+": No such file","er");wt(typeof n.f==="string"?n.f:"[binary file]")},
+  mkdir:a=>{const p=parse(a[0]||""),n=node(p.slice(0,-1));if(!n||!n.d||!a[0])return wt("mkdir: cannot create directory","er");n.d[p.at(-1)]={d:{}}},
+  touch:a=>{const p=parse(a[0]||""),n=node(p.slice(0,-1));if(!n||!n.d||!a[0])return wt("touch: cannot touch","er");n.d[p.at(-1)]=n.d[p.at(-1)]||{f:""}},
+  rm:a=>{const p=parse(a[0]||""),n=node(p.slice(0,-1));if(n&&n.d&&n.d[p.at(-1)])delete n.d[p.at(-1)];else wt("rm: cannot remove "+a[0],"er")},
+  neofetch:()=>wt(`   .-----.     user@helcustum\n  / .---. \\    OS: Helcustum 1.0 Ridgeline\n  | |   | |    Shell: hsh (browser)\n  | '---' |    Packages: ${pkgs.length} (dpkg)\n   '-----'     Wallpaper: ${wall}`,"pd"),
+  wallpaper:a=>{const n=Object.keys(WP).find(k=>k.toLowerCase()===(a[0]||"").toLowerCase());if(n)setWall(n);else wt("Available: "+Object.keys(WP).join(", "))},
+  open:a=>{const m={settings:Settings,files:Files,about:About,apps:Apps,terminal:Terminal}[(a[0]||"").toLowerCase()];m?m():wt("open: unknown app","er")},
+  apt:()=>wt("E: Helcustum is offline. Install your own packages with: dpkg -i","er"),
+  run:a=>{const p=pkgs.find(x=>x.name===a[0]);p?Pkg(p):wt("run: "+(a[0]||"")+": not installed","er")}};
+ C.dpkg=async a=>{const f=a[0];if(f==="-l"){if(!pkgs.length)return wt("no packages installed");return wt(pkgs.map(p=>`ii  ${p.name.padEnd(22)}${(p.Version||"").padEnd(14)}${p.Architecture||""}`).join("\n"))}
+  if(f==="-r"){const i=pkgs.findIndex(p=>p.name===a[1]);if(i<0)return wt("dpkg: package not installed","er");pkgs.splice(i,1);document.querySelector(`[data-pkg="${a[1]}"]`)?.remove();return wt("Removed "+a[1])}
+  if(f==="-i"){let file;if(a[1]){const n=node(parse(a[1]));if(n&&n.f instanceof Uint8Array)file=new File([n.f],a[1].split("/").pop());}
+   if(!file){wt("Choose a .deb file ...","dm");file=await pickFile();if(!file)return wt("dpkg: cancelled","er")}return install(file)}
+  wt("usage: dpkg -i [file.deb] | -l | -r <package>")};
+ inp.onkeydown=async e=>{if(e.key==="ArrowUp"&&hist.length){inp.value=hist[--hi<0?(hi=0):hi]||"";e.preventDefault()}
+  else if(e.key==="Enter"){const v=inp.value.trim();inp.value="";w(ps.innerHTML+" "+esc(v));if(!v)return;hist.push(v);hi=hist.length;
+   const m=v.match(/^echo\s+(.*?)\s*>\s*(\S+)$/);if(m){const p=parse(m[2]),n=node(p.slice(0,-1));if(n&&n.d)n.d[p.at(-1)]={f:m[1].replace(/^["']|["']$/g,"")+"\n"};pr();return}
+   const [c,...a]=v.split(/\s+/);if(c==="echo")wt(a.join(" "));else if(C[c])await C[c](a);else wt(c+": command not found","er");pr();t.scrollTop=t.scrollHeight}};
+ t.onclick=()=>inp.focus();const e=openWin("Terminal \u2014 user@helcustum",t,600,380,undefined,50);t.style.cssText="height:100%";setTimeout(()=>inp.focus(),50);e.termInstall=install;return e}
+
+/* dock */
+const dock=$("#dock");
+function addDock(p,label,col,fn){const b=document.createElement("button");b.style.background=col||p.col;b.textContent=(label||p.name[0]).toUpperCase();b.title=p.name||label;b.setAttribute("aria-label",p.name||label);if(p.name)b.dataset.pkg=p.name;b.onclick=fn||(()=>Pkg(p));dock.append(b)}
+[["Terminal",">_","#27272a",Terminal],["Files","F","#3b82f6",()=>Files()],["Apps","A","#f59e0b",Apps],["Wallpapers","W","#8b5cf6",Settings],["About","i","#10b981",About]].forEach(([n,l,c,f])=>addDock({name:""},l,c,f)||0);
+[...dock.children].forEach((b,i)=>{b.title=b.getAttribute("aria-label")=["Terminal","Files","Apps","Wallpapers","About"][i]});
+
+/* drag-and-drop .deb anywhere */
+const dr=$("#drop");
+addEventListener("dragover",e=>{e.preventDefault();dr.style.display="grid"});
+addEventListener("dragleave",e=>{if(!e.relatedTarget)dr.style.display="none"});
+addEventListener("drop",async e=>{e.preventDefault();dr.style.display="none";for(const f of e.dataTransfer.files){const u=new Uint8Array(await f.arrayBuffer());node(["home","user","Downloads"]).d[f.name]={f:u}}
+ const t=document.createElement("div");t.className="pad";t.innerHTML=`Saved to ~/Downloads. Install in Terminal with <code>dpkg -i ~/Downloads/&lt;file&gt;.deb</code>`;openWin("Download complete",t,360,150)});
+Terminal();
+</script>
+</body>
+</html>

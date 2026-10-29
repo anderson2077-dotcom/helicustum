@@ -1,0 +1,27 @@
+{
+  "name": "helcustum",
+  "version": "1.0.0",
+  "description": "Helcustum desktop",
+  "author": "Helcustum",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win nsis portable --publish never"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.helcustum.os",
+    "productName": "Helcustum",
+    "files": ["main.js", "index.html"],
+    "win": { "target": ["nsis", "portable"] },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "Helcustum-Setup.${ext}"
+    },
+    "portable": { "artifactName": "Helcustum-Portable.${ext}" }
+  }
+}
